@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "JtTZsLzd/So=",
+  "success": true,
+  "projectFilePath": "/Users/burhanorucov/Documents/RiderProjects/CSharpFinalProject_Hospital/CSharpFinalProject_Hospital/CSharpFinalProject_Hospital.csproj",
+  "expectedPackageFiles": [
+    "/Users/burhanorucov/.nuget/packages/serilog/4.3.1-dev-02373/serilog.4.3.1-dev-02373.nupkg.sha512",
+    "/Users/burhanorucov/.nuget/packages/serilog.sinks.console/6.0.1-dev-00953/serilog.sinks.console.6.0.1-dev-00953.nupkg.sha512",
+    "/Users/burhanorucov/.nuget/packages/serilog.sinks.file/7.0.0/serilog.sinks.file.7.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
