@@ -17,3 +17,4 @@
 /Users/burhanorucov/Documents/RiderProjects/CSharpFinalProject_Hospital/CSharpFinalProject_Hospital/bin/Debug/net9.0/Serilog.Sinks.File.dll
 /Users/burhanorucov/Documents/RiderProjects/CSharpFinalProject_Hospital/CSharpFinalProject_Hospital/obj/Debug/net9.0/CSharpFinalProject_Hospital.csproj.AssemblyReference.cache
 /Users/burhanorucov/Documents/RiderProjects/CSharpFinalProject_Hospital/CSharpFinalProject_Hospital/obj/Debug/net9.0/CSharpFi.44DC0C2B.Up2Date
+/Users/burhanorucov/Documents/RiderProjects/CSharpFinalProject_Hospital/CSharpFinalProject_Hospital/obj/Debug/net9.0/CSharpFinalProject_Hospital.sourcelink.json

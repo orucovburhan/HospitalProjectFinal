@@ -10,4 +10,8 @@ public class Department
         Name = name;
         Doctors = doctors;
     }
+
+    override public string ToString() => $@"
+Name: {Name}
+Doctor count: {Doctors.Count}";
 }

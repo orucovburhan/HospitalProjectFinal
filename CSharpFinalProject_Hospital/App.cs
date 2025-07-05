@@ -41,22 +41,195 @@ namespace Hospital_Project
     {
         public static void Start()
         {
-
             string exePath = AppContext.BaseDirectory;
             string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
             string basePath = Path.Combine(projectRoot, "Logs");
-            Directory.CreateDirectory(Path.Combine(basePath, "Warnings"));
-            Directory.CreateDirectory(Path.Combine(basePath, "Errors"));
-            Directory.CreateDirectory(Path.Combine(basePath, "Information"));
-
             Log.Logger = new LoggerConfiguration()
-                .WriteTo.File(Path.Combine(basePath, "Warnings", "warning-.txt"), rollingInterval: RollingInterval.Day, restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Warning)
-                .WriteTo.File(Path.Combine(basePath, "Errors", "error-.txt"), rollingInterval: RollingInterval.Day, restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error)
-                .WriteTo.File(Path.Combine(basePath, "Information", "information-.txt"), rollingInterval: RollingInterval.Day, restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
+                .WriteTo.File(Path.Combine(basePath, "Warnings", "warning-.txt"),
+                    rollingInterval: RollingInterval.Infinite,
+                    restrictedToMinimumLevel: LogEventLevel.Warning)
+                .WriteTo.File(Path.Combine(basePath, "Errors", "error-.txt"),
+                    rollingInterval: RollingInterval.Infinite,
+                    restrictedToMinimumLevel: LogEventLevel.Error)
+                .WriteTo.File(Path.Combine(basePath, "Information", "information-.txt"),
+                    rollingInterval: RollingInterval.Infinite,
+                    restrictedToMinimumLevel: LogEventLevel.Information)
                 .CreateLogger();
 
-            Hospital hospital = new Hospital();
 
+            Hospital hospital = new Hospital("MediNova Hospital");
+            hospital = hospital.ReadFromFileHospital();
+            hospital.WriteToFileHospital();
+            void WriteToFileUser(List<User> users, User newUser)
+            {
+                string exePath = AppContext.BaseDirectory;
+                string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+                string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+
+                if (!Directory.Exists(jsonFolder))
+                    Directory.CreateDirectory(jsonFolder);
+
+                string usersPath = Path.Combine(jsonFolder, "users.json");
+
+                if (File.Exists(usersPath))
+                {
+                    string oldJson = File.ReadAllText(usersPath);
+                    if (!string.IsNullOrWhiteSpace(oldJson))
+                        users = JsonSerializer.Deserialize<List<User>>(oldJson) ?? new();
+                }
+
+                users.Add(newUser);
+                string newJson = JsonSerializer.Serialize(users, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(usersPath, newJson);
+            }
+            void WriteToFileDoctor(List<Doctor> doctors, Doctor newDoctor)
+            {
+                string exePath = AppContext.BaseDirectory;
+                string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+                string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+
+                if (!Directory.Exists(jsonFolder))
+                    Directory.CreateDirectory(jsonFolder);
+
+                string doctorsPath = Path.Combine(jsonFolder, "doctors.json");
+
+                if (File.Exists(doctorsPath))
+                {
+                    string oldJson = File.ReadAllText(doctorsPath);
+                    if (!string.IsNullOrWhiteSpace(oldJson))
+                        doctors = JsonSerializer.Deserialize<List<Doctor>>(oldJson) ?? new();
+                }
+
+                int index = doctors.FindIndex(d => d.Email == newDoctor.Email);
+                //doctor filede tapilsa update edecek yoxsa elae edecek
+                if (index != -1)
+                    doctors[index] = newDoctor;
+                else
+                    doctors.Add(newDoctor);
+
+                string newJson = JsonSerializer.Serialize(doctors, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(doctorsPath, newJson);
+            }
+            void WriteToFileDoctorApplicant(ApplicantDoctor newDoctor)
+            {
+                string exePath = AppContext.BaseDirectory;
+                string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+                string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+
+                if (!Directory.Exists(jsonFolder))
+                    Directory.CreateDirectory(jsonFolder);
+
+                string doctorsPath = Path.Combine(jsonFolder, "applicantDoctors.json");
+
+                List<ApplicantDoctor> applicantDoctors = new();
+
+                // Mövcud dataları oxu
+                if (File.Exists(doctorsPath))
+                {
+                    string oldJson = File.ReadAllText(doctorsPath);
+                    if (!string.IsNullOrWhiteSpace(oldJson))
+                        applicantDoctors = JsonSerializer.Deserialize<List<ApplicantDoctor>>(oldJson) ?? new();
+                }
+
+                // Eyni email varsa exception at
+                if (applicantDoctors.Any(d => d.Email == newDoctor.Email))
+                    throw new Exception("A doctor with this email already exists!");
+
+                // Əlavə et və append yaz
+                applicantDoctors.Add(newDoctor);
+
+                string newJson = JsonSerializer.Serialize(applicantDoctors, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(doctorsPath, newJson);
+            }
+            void WriteToFileAllDoctors(List<Doctor> doctors)
+            {
+                string exePath = AppContext.BaseDirectory;
+                string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+                string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+
+                if (!Directory.Exists(jsonFolder))
+                    Directory.CreateDirectory(jsonFolder);
+
+                string doctorsPath = Path.Combine(jsonFolder, "doctors.json"); 
+                if (File.Exists(doctorsPath))
+                {
+                    string oldJson = File.ReadAllText(doctorsPath);
+                    if (!string.IsNullOrWhiteSpace(oldJson))
+                        doctors = JsonSerializer.Deserialize<List<Doctor>>(oldJson) ?? new();
+                }
+                string newJson = JsonSerializer.Serialize(doctors, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(doctorsPath, newJson);
+            }
+            List<Doctor> ReadDoctors()
+            {
+                try
+                {
+                    string exePath = AppContext.BaseDirectory;
+                    string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+                    string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+                    string doctorsPath = Path.Combine(jsonFolder, "doctors.json");
+
+                    if (!File.Exists(doctorsPath))
+                        return new List<Doctor>();
+
+                    string json = File.ReadAllText(doctorsPath);
+
+                    if (string.IsNullOrWhiteSpace(json))
+                        return new List<Doctor>();
+
+                    return JsonSerializer.Deserialize<List<Doctor>>(json) ?? new List<Doctor>();
+                }
+                catch
+                {
+                    return new List<Doctor>();
+                }
+            }
+            List<User> ReadUsers()
+            {
+                try
+                {
+                    string exePath = AppContext.BaseDirectory;
+                    string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+                    string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+                    string usersPath = Path.Combine(jsonFolder, "users.json");
+
+                    if (!File.Exists(usersPath))
+                        return new List<User>();
+
+                    string json = File.ReadAllText(usersPath);
+
+                    if (string.IsNullOrWhiteSpace(json))
+                        return new List<User>();
+
+                    return JsonSerializer.Deserialize<List<User>>(json) ?? new List<User>();
+                }
+                catch
+                {
+                    return new List<User>();
+                }
+            }
+
+            List<ApplicantDoctor> ReadDoctorApplicants()
+            {
+                string exePath = AppContext.BaseDirectory;
+                string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+                string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+
+                string doctorsPath = Path.Combine(jsonFolder, "applicantDoctors.json");
+
+                if (!File.Exists(doctorsPath))
+                    return new List<ApplicantDoctor>();
+
+                string json = File.ReadAllText(doctorsPath);
+
+                if (string.IsNullOrWhiteSpace(json))
+                    return new List<ApplicantDoctor>();
+
+                return JsonSerializer.Deserialize<List<ApplicantDoctor>>(json) ?? new List<ApplicantDoctor>();
+            }
+
+
+            WriteToFileAllDoctors(hospital.AllDoctors);
             while (true)
             {
                 RestartLogin: ;
@@ -64,10 +237,10 @@ namespace Hospital_Project
                 string[] menuOptions =
 {
     "Admin sign in",
-    "Sign up as user",
+    "User sign up",
     "User sign in",
-    "Sign up as doctor",
     "Doctor sign in",
+    "Apply to become a doctor",
     "Exit"
 };
 
@@ -77,7 +250,7 @@ while (true)
 {
     FirstPart: ;
     Console.Clear();
-    Console.WriteLine("Welcome to the Hospital\n");
+    Console.WriteLine("Welcome to MediNova Hospital");
     
 
     for (int i = 0; i < menuOptions.Length; i++)
@@ -110,27 +283,94 @@ while (true)
             {
                 case 0:
                 {
-                    var users = new List<User>();
-                    using var fs = new FileStream("users.json", FileMode.Open);
-                    users = JsonSerializer.Deserialize<List<User>>(fs);
-                    foreach (var user in users)
+                    Admin admin = new Admin("admin", "admin");
+                    Console.Write("Enter username: ");
+                    string usernameAdmin = Console.ReadLine();
+                    Console.Write("Enter password: ");
+                    string passwordAdmin = Console.ReadLine();
+                    if (usernameAdmin == admin.Name && passwordAdmin == admin.Password)
                     {
-                        Console.WriteLine(user);
+                        int selectedIndex1 = 0;
+                        string[] options =
+                            { "|Show All Applicants", "|View Departments", "|View Users", "|View Doctors", "|Back" };
+
+                        while (true)
+                        {
+                            AdminPanael: ;
+                            ConsoleKey key1;
+
+                            do
+                            {
+                                Console.Clear();
+                                Console.WriteLine("Welcome Admin!");
+                                for (int i = 0; i < options.Length; i++)
+                                {
+                                    if (i == selectedIndex1)
+                                    {
+                                        Console.ForegroundColor = ConsoleColor.Cyan;
+                                        Console.WriteLine(">> " + options[i]);
+                                        Console.ResetColor();
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("   " + options[i]);
+                                    }
+                                }
+
+                                key1 = Console.ReadKey(true).Key;
+
+                                if (key1 == ConsoleKey.UpArrow)
+                                {
+                                    selectedIndex1 = (selectedIndex1 == 0) ? options.Length - 1 : selectedIndex1 - 1;
+                                }
+                                else if (key1 == ConsoleKey.DownArrow)
+                                {
+                                    selectedIndex1 = (selectedIndex1 == options.Length - 1) ? 0 : selectedIndex1 + 1;
+                                }
+
+                            } while (key1 != ConsoleKey.Enter);
+
+                            Console.Clear();
+                            Console.WriteLine("You selected: " + options[selectedIndex1] + "\n");
+
+                            switch (selectedIndex1)
+                            {
+                                case 0:
+                                    admin.ViewApplicants(ReadDoctorApplicants(),hospital.AllDoctors,ref hospital);
+                                    break;
+                                case 1:
+                                    admin.View(hospital.Departments);
+                                    break;
+                                case 2:
+                                    admin.View(ReadUsers());
+                                    break;
+                                case 3:
+                                    admin.View(ReadDoctors());
+                                    break;
+                                case 4:
+                                    Console.WriteLine("Exiting admin panel...");
+                                    Thread.Sleep(1000); 
+                                    goto FirstPart;
+                                    break;
+                            }
+
+                            Console.WriteLine("\nPress any key to go back to menu...");
+                            Console.ReadKey();
+                        }
                     }
 
-                    Console.ReadKey();
                     break;
                 }
                 case 1:
                     SignUp: ;
                     Console.Clear();
-                    Console.WriteLine("Enter your name:");
+                    Console.Write("Enter your name: ");
                     string name = Console.ReadLine();
-                    Console.WriteLine("Enter your surname:");
+                    Console.Write("Enter your surname: ");
                     string surname = Console.ReadLine();
-                    Console.WriteLine("Enter your email:");
+                    Console.Write("Enter your email: ");
                     string email = Console.ReadLine();
-                    Console.WriteLine("Enter your phone number:");
+                    Console.Write("Enter your phone number: ");
                     string phone = Console.ReadLine();
                     Console.WriteLine("Set your password: (Must be at least 8 symbols,at least 1 digit,1 uppercase,1 lowercase)");
                     string password = Console.ReadLine();
@@ -142,18 +382,8 @@ while (true)
                         
 
                         List<User> users = new();
-
-                        if (File.Exists("users.json"))
-                        {
-                            string oldJson = File.ReadAllText("users.json");
-                            if (!string.IsNullOrWhiteSpace(oldJson))
-                                users = JsonSerializer.Deserialize<List<User>>(oldJson) ?? new();
-                        }
-
-                        users.Add(newUser);
-                        string newJson = JsonSerializer.Serialize(users, new JsonSerializerOptions { WriteIndented = true });
-                        File.WriteAllText("users.json", newJson);
-                        Thread.Sleep(1500);
+                        WriteToFileUser(users,newUser);
+                        
                         goto FirstPart;
                     }
                     catch (Exception ex)
@@ -165,30 +395,8 @@ while (true)
                         Console.ReadKey();
                         continue;
                     }
-
-                
-                
-                
                 case 2: 
-                    static List<User> ReadUsers()
-                    {
-                        try
-                        {
-                            if (!File.Exists("users.json"))
-                                return new List<User>();
 
-                            string json = File.ReadAllText("users.json");
-
-                            if (string.IsNullOrWhiteSpace(json))
-                                return new List<User>();
-
-                            return JsonSerializer.Deserialize<List<User>>(json) ?? new List<User>();
-                        }
-                        catch
-                        {
-                            return new List<User>();
-                        }
-                    }
 
                     List<User> users2 = ReadUsers();
 
@@ -202,14 +410,14 @@ while (true)
                         return -1;
                     }
                     
-                    Console.WriteLine("Enter your email:");
+                    Console.Write("Enter your email: ");
                     string email2 = Console.ReadLine();
                     
                     int index = SearchUser(email2);
                     if (index == -1)
                     {
                         Console.WriteLine("User not found");
-                        Log.Error($"User not found - {email2}");
+                        Log.Information($"User not found - {email2}");
                         Console.WriteLine("Press any key to go sign up.");
                         Console.ReadKey();
                         goto SignUp;
@@ -217,7 +425,7 @@ while (true)
                     }
                     else
                     {
-                        Console.WriteLine("Enter your password:");
+                        Console.Write("Enter your password: ");
                         string password2 = Console.ReadLine();
                         if (password2 == users2[index].Password)
                         {
@@ -226,7 +434,15 @@ while (true)
                                 hospital.Departments[0].Name, hospital.Departments[1].Name, hospital.Departments[2].Name
                             };
                             int selectedDepartmentIndex = 0;
-                            Log.Information($"{users2[index].Name} {users2[index].Surname} have entered {departments[index]}");
+                            try
+                            {
+                                Log.Information($"{users2[index].Name} {users2[index].Surname} have entered {departments[index]}");
+
+                            }
+                            catch (Exception e)
+                            {
+                                Log.Error(e.Message);
+                            }
                             while (true)
                             {
                                 BackToDepartmentSelection: ;
@@ -289,6 +505,7 @@ while (true)
                                             int selectedDoctorIndex = 0;
                                             while (true)
                                             {
+                                                BackToDoctorSelection: ;
                                                 Console.Clear();
                                                 Console.WriteLine(
                                                     $"Department: {departments[selectedDepartmentIndex]}");
@@ -336,229 +553,201 @@ while (true)
                                                         {
                                                             goto BackToDepartmentSelection;
                                                         }
-                                                        else
+
+                                                        int selectedHourIndex = 0;
+                                                        hospital.AllDoctors = ReadDoctors();
+
+                                                        while (true)
                                                         {
-                                                            int selectedHourIndex = 0;
+                                                            Console.Clear();
+                                                            Console.WriteLine(
+                                                                $"Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}");
+                                                            Console.WriteLine("Choose a time slot:\n");
 
-                                                            while (true)
+                                                            bool[] available =
                                                             {
-                                                                Console.Clear();
-                                                                Console.WriteLine(
-                                                                    $"Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}");
-                                                                Console.WriteLine("Choose a time slot:\n");
-
-                                                                bool[] available =
-                                                                {
-                                                                    doctors[selectedDoctorIndex].NineToEleven,
-                                                                    doctors[selectedDoctorIndex].TwelveToThirteen,
-                                                                    doctors[selectedDoctorIndex].FifteenToSeventeen,
-                                                                };
-
-                                                                string[] hours =
-                                                                {
-                                                                    $"09:00 - 11:00 - {(available[0] ? "Free" : "Reserved")}",
-                                                                    $"12:00 - 14:00 - {(available[1] ? "Free" : "Reserved")}",
-                                                                    $"15:00 - 17:00 - {(available[2] ? "Free" : "Reserved")}",
-                                                                    "Back"
-                                                                };
-                                                                //bunu yazmayanda asagidaki you have booked sozunde free sozu de gorunurdu ona gore ayri saxladim
-                                                                string[] hourRanges =
-                                                                {
-                                                                    "09:00 - 11:00", "12:00 - 14:00", "15:00 - 17:00"
-                                                                };
+                                                                doctors[selectedDoctorIndex].NineToEleven,
+                                                                doctors[selectedDoctorIndex].TwelveToThirteen,
+                                                                doctors[selectedDoctorIndex].FifteenToSeventeen,
+                                                            };
+                                                            string[] hours =
+                                                            {
+                                                                $"09:00 - 11:00 - {(available[0] ? "Free" : "Reserved")}",
+                                                                $"12:00 - 14:00 - {(available[1] ? "Free" : "Reserved")}",
+                                                                $"15:00 - 17:00 - {(available[2] ? "Free" : "Reserved")}",
+                                                                "Back"
+                                                            };
+                                                            //bunu yazmayanda asagidaki you have booked sozunde free/reserved sozu de gorunurdu ona gore ayri saxladim
+                                                            string[] hourRanges =
+                                                            {
+                                                                "09:00 - 11:00", "12:00 - 14:00", "15:00 - 17:00"
+                                                            };
 
 
-                                                                while (selectedHourIndex < 3 &&
-                                                                       !available[selectedHourIndex])
+                                                            while (selectedHourIndex < 3 &&
+                                                                   !available[selectedHourIndex])
+                                                            {
+                                                                selectedHourIndex = (selectedHourIndex + 1) %
+                                                                    hours.Length;
+                                                            }
+
+                                                            for (int i = 0; i < hours.Length; i++)
+                                                            {
+                                                                if (i == selectedHourIndex)
                                                                 {
-                                                                    selectedHourIndex = (selectedHourIndex + 1) %
-                                                                        hours.Length;
+                                                                    Console.ForegroundColor = ConsoleColor.Cyan;
+                                                                    Console.WriteLine($"> {hours[i]}");
+                                                                    Console.ResetColor();
                                                                 }
-
-                                                                for (int i = 0; i < hours.Length; i++)
+                                                                else
                                                                 {
-                                                                    if (i == selectedHourIndex)
-                                                                    {
-                                                                        Console.ForegroundColor = ConsoleColor.Cyan;
-                                                                        Console.WriteLine($"> {hours[i]}");
-                                                                        Console.ResetColor();
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        Console.WriteLine($"  {hours[i]}");
-                                                                    }
+                                                                    Console.WriteLine($"  {hours[i]}");
                                                                 }
+                                                            }
 
-                                                                ConsoleKey hourKey = Console.ReadKey(true).Key;
-                                                                switch (hourKey)
-                                                                {
-                                                                    case ConsoleKey.UpArrow:
-                                                                        do
+                                                            ConsoleKey hourKey = Console.ReadKey(true).Key;
+                                                            switch (hourKey)
+                                                            {
+                                                                case ConsoleKey.UpArrow:
+                                                                    do
+                                                                    {
+                                                                        selectedHourIndex =
+                                                                            (selectedHourIndex - 1 + hours.Length) %
+                                                                            hours.Length;
+                                                                    } while (selectedHourIndex < 3 &&
+                                                                             !available[selectedHourIndex]);
+
+                                                                    break;
+
+                                                                case ConsoleKey.DownArrow:
+                                                                    do
+                                                                    {
+                                                                        selectedHourIndex =
+                                                                            (selectedHourIndex + 1) % hours.Length;
+                                                                    } while (selectedHourIndex < 3 &&
+                                                                             !available[selectedHourIndex]);
+
+                                                                    break;
+
+                                                                case ConsoleKey.Enter:
+                                                                    if (selectedHourIndex == 3)
+                                                                    {
+                                                                        goto BackToDoctorSelection;
+                                                                    }
+                                                                    else if (available[selectedHourIndex])
+                                                                    {
+                                                                        if (selectedHourIndex == 0)
+                                                                            doctors[selectedDoctorIndex]
+                                                                                .NineToEleven = false;
+                                                                        else if (selectedHourIndex == 1)
+                                                                            doctors[selectedDoctorIndex]
+                                                                                .TwelveToThirteen = false;
+                                                                        else if (selectedHourIndex == 2)
+                                                                            doctors[selectedDoctorIndex]
+                                                                                .FifteenToSeventeen = false;
+
+                                                                        Console.Clear();
+                                                                        WriteToFileDoctor(hospital.AllDoctors,doctors[selectedDoctorIndex]);
+
+                                                                        Console.WriteLine(
+                                                                            $"Thank you {users2[index].Name} {users2[index].Surname}. You have booked {hourRanges[selectedHourIndex]} with Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}\nBill is preparing");
+                                                                        Log.Information($"{users2[index].Name} {users2[index].Surname} booked an appointment with Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}");
+                                                                        if (index != -1)
                                                                         {
-                                                                            selectedHourIndex =
-                                                                                (selectedHourIndex - 1 + hours.Length) %
-                                                                                hours.Length;
-                                                                        } while (selectedHourIndex < 3 &&
-                                                                         !available[selectedHourIndex]);
+                                                                            string content2 = $@"
+╔════════════════════════════════════════════╗
+║      🩺 UPCOMING APPOINTMENT NOTICE       ║
+╚════════════════════════════════════════════╝
 
-                                                                        break;
+Notice No  : #DOC-{DateTime.Now:yyyyMMddHHmm}
+Issued     : {DateTime.Now:dd/MM/yyyy HH:mm}
 
-                                                                    case ConsoleKey.DownArrow:
-                                                                        do
-                                                                        {
-                                                                            selectedHourIndex =
-                                                                                (selectedHourIndex + 1) % hours.Length;
-                                                                        } while (selectedHourIndex < 3 &&
-                                                                         !available[selectedHourIndex]);
+--- DOCTOR ---
+Name       : Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}
+Email      : {doctors[selectedDoctorIndex].Email}
+Phone      : {doctors[selectedDoctorIndex].Phone}
+Experience : {doctors[selectedDoctorIndex].ExperienceYear} yrs
 
-                                                                        break;
+--- PATIENT ---
+Name       : {users2[index].Name} {users2[index].Surname}
+Email      : {users2[index].Email}
+Phone      : {users2[index].Phone}
 
-                                                                    case ConsoleKey.Enter:
-                                                                        if (selectedHourIndex == 3)
-                                                                        {
-                                                                            goto BackToDoctorSelection;
-                                                                        }
-                                                                        else if (available[selectedHourIndex])
-                                                                        {
-                                                                            if (selectedHourIndex == 0)
-                                                                                doctors[selectedDoctorIndex]
-                                                                                    .NineToEleven = false;
-                                                                            else if (selectedHourIndex == 1)
-                                                                                doctors[selectedDoctorIndex]
-                                                                                    .TwelveToThirteen = false;
-                                                                            else if (selectedHourIndex == 2)
-                                                                                doctors[selectedDoctorIndex]
-                                                                                    .FifteenToSeventeen = false;
+--- APPOINTMENT ---
+Department : {departments[selectedDepartmentIndex]}
+Time       : {hourRanges[selectedHourIndex]}
+Date       : {DateTime.Now:dd/MM/yyyy}
 
-                                                                            Console.Clear();
-
-                                                                            Console.WriteLine(
-                                                                                $"Thank you {users2[index].Name} {users2[index].Surname}. You have booked {hourRanges[selectedHourIndex]} with Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}");
-                                                                            Log.Information($"{users2[index].Name} {users2[index].Surname} booked an appointment with Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}");
-                                                                            if (index != -1)
-                                                                            {
-                                                                                string content2 = $@"
-╔════════════════════════════════════════════════════════╗
-║           🩺 UPCOMING PATIENT APPOINTMENT NOTICE       ║
-╚════════════════════════════════════════════════════════╝
-
-Notice No     : #DOC-{DateTime.Now:yyyyMMddHHmm}
-Date Issued   : {DateTime.Now:dd/MM/yyyy HH:mm}
-
-╔══════════════════════════════════════╗
-║              DOCTOR INFO            ║
-╚══════════════════════════════════════╝
-Name          : Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}
-Email         : {doctors[selectedDoctorIndex].Email}
-Phone         : {doctors[selectedDoctorIndex].Phone}
-Experience    : {doctors[selectedDoctorIndex].ExperienceYear} years
-
-╔══════════════════════════════════════╗
-║             PATIENT INFO            ║
-╚══════════════════════════════════════╝
-Name          : {users2[index].Name} {users2[index].Surname}
-Email         : {users2[index].Email}
-Phone         : {users2[index].Phone}
-
-╔══════════════════════════════════════╗
-║         APPOINTMENT DETAILS         ║
-╚══════════════════════════════════════╝
-Department     : {departments[selectedDepartmentIndex]}
-Time Slot      : {hourRanges[selectedHourIndex]}
-Date           : {DateTime.Now:dd/MM/yyyy}
-
-════════════════════════════════════════════════════════
-Please be prepared at the specified time.
-════════════════════════════════════════════════════════
+Be ready at the specified time.
 ";
+                                                                            string content = $@"
+🏥 HOSPITAL APPOINTMENT CONFIRMATION
 
+Bill No     : #HOSP-{DateTime.Now:yyyyMMddHHmm}
+Issued      : {DateTime.Now:dd/MM/yyyy HH:mm}
 
-                                                                                string content = $@"
-╔════════════════════════════════════════════════════════╗
-║            🏥 HOSPITAL APPOINTMENT CONFIRMATION        ║
-╚════════════════════════════════════════════════════════╝
+--- PATIENT ---
+Name        : {users2[index].Name} {users2[index].Surname}
+Email       : {users2[index].Email}
+Phone       : {users2[index].Phone}
 
-Bill No       : #HOSP-{DateTime.Now:yyyyMMddHHmm}
-Date Issued   : {DateTime.Now:dd/MM/yyyy HH:mm}
+--- APPOINTMENT ---
+Department  : {departments[selectedDepartmentIndex]}
+Doctor      : Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}
+Time        : {hourRanges[selectedHourIndex]}
+Date        : {DateTime.Now:dd/MM/yyyy}
 
-╔══════════════════════════════════════╗
-║              PATIENT INFO           ║
-╚══════════════════════════════════════╝
-Name          : {users2[index].Name} {users2[index].Surname}
-Email         : {users2[index].Email}
-Phone         : {users2[index].Phone}
-
-╔══════════════════════════════════════╗
-║          APPOINTMENT DETAILS         ║
-╚══════════════════════════════════════╝
-Department     : {departments[selectedDepartmentIndex]}
-Doctor         : Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}
-Time Slot      : {hourRanges[selectedHourIndex]}
-Date           : {DateTime.Now:dd/MM/yyyy}
-
-╔══════════════════════════════════════╗
-║               NOTICE                 ║
-╚══════════════════════════════════════╝
 Please arrive 10 minutes before your scheduled time.
 For rescheduling, contact us 24 hours in advance.
 
-📞 Support: +994 12 345 67 89
-✉ Email  : support@hospital.com
+📞 +994 12 345 67 89
+✉ MediNovaHospital@hospital.com
 
-════════════════════════════════════════════════════════
 This is an automated message. Please do not reply.
-════════════════════════════════════════════════════════
 ";
+                                                                            try
+                                                                            {
+                                                                                    
+                                                                                var client =
+                                                                                    new SmtpClient("smtp.gmail.com",
+                                                                                        587)
+                                                                                    {
+                                                                                        Credentials =
+                                                                                            new NetworkCredential(
+                                                                                                "burhanorucov@gmail.com",
+                                                                                                "ndfq jrvo fojm pndc"),
+                                                                                        EnableSsl = true
+                                                                                    };
 
+                                                                                client.Send(
+                                                                                    "burhanorucov@gmail.com",
+                                                                                    email2, "Bill from hospital.",
+                                                                                    content);
+                                                                                client.Send(
+                                                                                    "burhanorucov@gmail.com",doctors[selectedDoctorIndex].Email, "Bill from hospital.",
+                                                                                    content2);
+                                                                                Console.WriteLine("The bill has sent to your email.");
+                                                                                Log.Information($"Appointment bill has sent to {email2} and {doctors[selectedDoctorIndex].Email}");
 
-                                                                                try
-                                                                                {
-                                                                                    var client =
-                                                                                        new SmtpClient("smtp.gmail.com",
-                                                                                            587)
-                                                                                        {
-                                                                                            Credentials =
-                                                                                                new NetworkCredential(
-                                                                                                    "burhanorucov@gmail.com",
-                                                                                                    "ndfq jrvo fojm pndc"),
-                                                                                            EnableSsl = true
-                                                                                        };
-
-                                                                                    client.Send(
-                                                                                        "burhanorucov@gmail.com",
-                                                                                        email2, "Bill from hospital.",
-                                                                                        content);
-                                                                                    client.Send(
-                                                                                        "burhanorucov@gmail.com",
-                                                                                        doctors[selectedDoctorIndex].Email, "Bill from hospital.",
-                                                                                        content2);
-                                                                                    Console.WriteLine("The bill has sent to your email.");
-                                                                                    Log.Information($"Appointment bill has sent to {email2} and {doctors[selectedDoctorIndex].Email}");
-
-                                                                                }
-                                                                                catch (Exception ex)
-                                                                                {
-                                                                                    Console.WriteLine("Error: " +
-                                                                                        ex.Message);
-                                                                                    Log.Error(ex.Message);
-                                                                                }
-
-                                                                                Console.WriteLine(
-                                                                                    "Press any key to return to login...");
-                                                                                Console.ReadKey(true);
-                                                                                goto RestartLogin;
+                                                                            }
+                                                                            catch (Exception ex)
+                                                                            {
+                                                                                Console.WriteLine(ex.Message);
+                                                                                Log.Error(ex.Message);
                                                                             }
 
-                                                                            break;
+                                                                            Console.WriteLine(
+                                                                                "Press any key to return to login...");
+                                                                            Console.ReadKey(true);
+                                                                            goto RestartLogin;
                                                                         }
 
-                                                                        break;
-                                                                }
+                                                                    }
 
-                                                                BackToDoctorSelection: ;
+                                                                    break;
                                                             }
 
-                                                            break;
+                                                                
                                                         }
                                                 }
                                             }
@@ -578,13 +767,70 @@ This is an automated message. Please do not reply.
 
                         break;
                     }
-
-
                 case 3:
-                    Console.WriteLine("Həkim Qeydiyyatı bölməsi hələ yazılmayıb.");
+                    //doctor sign in
                     break;
                 case 4:
-                    Console.WriteLine("Həkim Girişi bölməsi hələ yazılmayıb.");
+                    //doctor application for being a doc
+                    Console.WriteLine("Welcome! Please fill the gaps.");
+                    Console.Write("Enter your name: ");
+                    string nameDoctorApplicant = Console.ReadLine();
+                    Console.Write("Enter your surname: ");
+                    string surnameDoctorApplicant = Console.ReadLine();
+                    Console.Write("Enter your email: ");
+                    string emailDoctorApplicant = Console.ReadLine();
+                    Console.Write("Enter your phone number: ");
+                    string phoneDoctorApplicant = Console.ReadLine();
+                    Console.Write("Enter your experience year: ");
+                    double experienceYearDoctorApplicant = double.Parse(Console.ReadLine());//bele edirikki doubleden sonra string yzanda avtomatik \n goturmesin
+                    
+                    Console.WriteLine("Set your password: (Must be at least 8 symbols,at least 1 digit,1 uppercase,1 lowercase)");
+                    string passwordDoctorApplicant = Console.ReadLine();
+                    Console.Write("Which university you had your education: ");
+                    string universityDoctorApplicant = Console.ReadLine();
+                    Console.Write("Choose a department: ");
+                    string departmentDoctorApplicant = Console.ReadLine();
+                    bool flag = false;
+                    foreach (var hospitalDepartment in hospital.Departments)
+                    {
+                        if (hospitalDepartment.Name == departmentDoctorApplicant)
+                        {
+                            flag = true;
+                        }
+                    }
+
+                    if (flag)
+                    {
+                        Console.WriteLine("You want to apply? (yes/no)");
+                        string answer = Console.ReadLine();
+                        try
+                        {
+                            if (answer == "yes")
+                            {
+
+                                ApplicantDoctor newApplicantDoctor = new ApplicantDoctor(nameDoctorApplicant,
+                                    surnameDoctorApplicant, emailDoctorApplicant, phoneDoctorApplicant,
+                                    experienceYearDoctorApplicant, passwordDoctorApplicant, universityDoctorApplicant);
+                                newApplicantDoctor.Department=departmentDoctorApplicant;
+                                WriteToFileDoctorApplicant(newApplicantDoctor);
+                                hospital.WriteToFileHospital();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                            Log.Warning($"{nameDoctorApplicant} {surnameDoctorApplicant} {ex.Message}");
+                            Console.WriteLine("Try again");
+                            Console.WriteLine("Press any key to continue...");
+                            Console.ReadKey();
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("There is no such department");
+                    }
+
                     break;
                 case 5:
                     Console.WriteLine("Exiting...");

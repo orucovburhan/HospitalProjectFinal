@@ -4,7 +4,8 @@ namespace Hospital_Project;
 
 public class Hospital
 {
-    public static List<Doctor> AllDoctors = new List<Doctor>()
+    public string Name { get; set; }
+    public List<Doctor> AllDoctors = new List<Doctor>()
     {
         new Doctor("Elmira", "Orucova", "elmiraorucova17@gmail.com", "0701234561", 12, "Elmira123"),
         new Doctor("Niket", "Patel", "niket.patel@hospital.com", "0701234562", 18, "Niket1234"),
@@ -19,16 +20,21 @@ public class Hospital
         new Doctor("Rod", "Hughes", "rod.hughes@hospital.com", "0701234571", 29, "Rod123456"),
     };
 
-
-
-    public List<Department> Departments = new List<Department>()
+    public Hospital(string name)
     {
-        new Department("Pediatrics",new List<Doctor>(){AllDoctors[0],AllDoctors[1],AllDoctors[2],AllDoctors[3]}),
-        new Department("Traumatology",new List<Doctor>(){AllDoctors[4],AllDoctors[5],AllDoctors[6]}),
-        new Department("Dentistry",new List<Doctor>(){AllDoctors[7],AllDoctors[8],AllDoctors[9],AllDoctors[10]}),
-    };
+        Departments = new List<Department>()
+        {
+            new Department("Pediatrics",new List<Doctor>(){AllDoctors[0],AllDoctors[1],AllDoctors[2],AllDoctors[3]}),
+            new Department("Traumatology",new List<Doctor>(){AllDoctors[4],AllDoctors[5],AllDoctors[6]}),
+            new Department("Dentistry",new List<Doctor>(){AllDoctors[7],AllDoctors[8],AllDoctors[9],AllDoctors[10]}),
+        };
+        Name = name;
+    }
+
+    public List<Department> Departments;
     private static List<User> ReadUsers()
     {
+        
         try
         {
             if (!File.Exists("users.json"))
@@ -46,9 +52,78 @@ public class Hospital
             return new List<User>();
         }
     }
-
     public List<User> Users= ReadUsers();
+    public void WriteToFileHospital()
+    {
+        string exePath = AppContext.BaseDirectory;
+        string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+        string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
 
+        if (!Directory.Exists(jsonFolder))
+            Directory.CreateDirectory(jsonFolder);
+
+        string hospitalPath = Path.Combine(jsonFolder, "hospital.json");
+
+        List<object> departmentsData = new List<object>();
+
+        foreach (var dept in Departments)
+        {
+            List<object> doctorsData = new List<object>();
+
+            foreach (var doc in dept.Doctors)
+            {
+                doctorsData.Add(new
+                {
+                    Name = doc.Name,
+                    Surname = doc.Surname,
+                    Email = doc.Email,
+                    Phone = doc.Phone,
+                    ExperienceYear = doc.ExperienceYear,
+                    Password = doc.Password
+                });
+            }
+
+            departmentsData.Add(new
+            {
+                Name = dept.Name,
+                Doctors = doctorsData
+            });
+        }
+
+        var hospitalData = new
+        {
+            Name = this.Name,
+            Departments = departmentsData
+        };
+
+        string json = JsonSerializer.Serialize(hospitalData, new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
+        File.WriteAllText(hospitalPath, json);
+    }
+
+    public Hospital ReadFromFileHospital()
+    {
+        string exePath = AppContext.BaseDirectory;
+        string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+        string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+        string hospitalPath = Path.Combine(jsonFolder, "hospital.json");
+
+        if (!File.Exists(hospitalPath))
+            return null;  
+
+        string json = File.ReadAllText(hospitalPath);
+
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+       
+        Hospital hospital = JsonSerializer.Deserialize<Hospital>(json);
+
+        return hospital;
+    }
 
 }
 

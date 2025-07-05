@@ -1,4 +1,0 @@
-2025-07-03 14:47:52.670 +04:00 [INF] Account successfully created - burhanorucov@gmail.com
-2025-07-03 14:48:03.436 +04:00 [INF] Burhan Orucov have entered Traumatology
-2025-07-03 14:48:05.537 +04:00 [INF] Burhan Orucov booked an appointment with Dr. Elmira Orucova
-2025-07-03 14:48:17.373 +04:00 [INF] Appointment bill has sent to burhanorucov@gmail.com and elmiraorucova17@gmail.com
