@@ -24,6 +24,7 @@ public class Hospital
     
     public Hospital(string name)
     {
+        
         Departments = new List<Department>()
         {
         new Department("Pediatrics",new List<Doctor>(){AllDoctors[0],AllDoctors[1],AllDoctors[2],AllDoctors[3]}),
@@ -31,6 +32,7 @@ public class Hospital
         new Department("Dentistry",new List<Doctor>(){AllDoctors[7],AllDoctors[8],AllDoctors[9],AllDoctors[10]}),
         };
         Name = name;
+        Departments = ReadDepartmentsFromFile();
     }
 
     public List<Department> Departments;
@@ -60,27 +62,6 @@ public class Hospital
         }
     }
 
-    private static List<User> ReadUsers()
-    {
-        
-        try
-        {
-            if (!File.Exists("users.json"))
-                return new List<User>();
-
-            string json = File.ReadAllText("users.json");
-
-            if (string.IsNullOrWhiteSpace(json))
-                return new List<User>();
-
-            return JsonSerializer.Deserialize<List<User>>(json) ?? new List<User>();
-        }
-        catch
-        {
-            return new List<User>();
-        }
-    }
-    public List<User> Users= ReadUsers();
     public void WriteToFileHospital()
     {
         string exePath = AppContext.BaseDirectory;
@@ -131,6 +112,53 @@ public class Hospital
 
         File.WriteAllText(hospitalPath, json);
     }
+    public List<Department> ReadDepartmentsFromFile()
+    {
+        string exePath = AppContext.BaseDirectory;
+        string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+        string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+        string hospitalPath = Path.Combine(jsonFolder, "hospital.json");
+
+        if (!File.Exists(hospitalPath))
+            return new List<Department>();
+
+        string json = File.ReadAllText(hospitalPath);
+
+        if (string.IsNullOrWhiteSpace(json))
+            return new List<Department>();
+
+        using JsonDocument doc = JsonDocument.Parse(json);
+        JsonElement root = doc.RootElement;
+
+        if (root.TryGetProperty("Departments", out JsonElement departmentsElement))
+        {
+            List<Department> departments = new List<Department>();
+
+            foreach (JsonElement deptElement in departmentsElement.EnumerateArray())
+            {
+                string name = deptElement.GetProperty("Name").GetString();
+                List<Doctor> doctors = new List<Doctor>();
+
+                foreach (JsonElement docElement in deptElement.GetProperty("Doctors").EnumerateArray())
+                {
+                    string docName = docElement.GetProperty("Name").GetString();
+                    string docSurname = docElement.GetProperty("Surname").GetString();
+                    string docEmail = docElement.GetProperty("Email").GetString();
+                    string docPhone = docElement.GetProperty("Phone").GetString();
+                    double docExp = docElement.GetProperty("ExperienceYear").GetDouble();
+                    string docPassword = docElement.GetProperty("Password").GetString();
+
+                    doctors.Add(new Doctor(docName, docSurname, docEmail, docPhone, docExp, docPassword));
+                }
+
+                departments.Add(new Department(name, doctors));
+            }
+
+            return departments;
+        }
+
+        return new List<Department>();
+    }
 
     public Hospital ReadFromFileHospital()
     {
@@ -152,6 +180,19 @@ public class Hospital
 
         return hospital;
     }
+    public List<Doctor> GetDoctorsByDepartment(string departmentName)
+    {
+        if (string.IsNullOrWhiteSpace(departmentName))
+            return new List<Doctor>();
+
+        var department = Departments.FirstOrDefault(d => d.Name.Equals(departmentName, StringComparison.OrdinalIgnoreCase));
+
+        if (department != null)
+            return department.Doctors;
+
+        return new List<Doctor>();
+    }
+
 
 }
 

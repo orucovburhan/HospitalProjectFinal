@@ -62,7 +62,6 @@ namespace Hospital_Project
 
             Hospital hospital = new Hospital("MediNova Hospital");
             hospital = hospital.ReadFromFileHospital();
-            hospital.WriteToFileHospital();
             void WriteToFileUser(List<User> users, User newUser)
             {
                 string exePath = AppContext.BaseDirectory;
@@ -295,6 +294,7 @@ while (true)
     FirstPart: ;
     Console.Clear();
     Console.WriteLine("Welcome to MediNova Hospital");
+    hospital = hospital.ReadFromFileHospital();
     ForceResetDoctorAvailability(); 
 
 
@@ -382,6 +382,7 @@ while (true)
                             {
                                 case 0:
                                     admin.ViewApplicants(ReadDoctorApplicants(),hospital.AllDoctors,ref hospital);
+                                    hospital.WriteToFileHospital();
                                     Log.Information("Admin viewed applicants");
                                     break;
                                 case 1:
@@ -448,8 +449,6 @@ while (true)
                         continue;
                     }
                 case 2: 
-
-
                     List<User> users2 = ReadUsers();
 
                     int SearchUser(string email)
@@ -543,7 +542,8 @@ while (true)
                                         }
                                         else
                                         {
-                                            var doctors = hospital.Departments[selectedDepartmentIndex].Doctors;
+                                            string deptName = hospital.Departments[selectedDepartmentIndex].Name;
+                                            var doctors = hospital.GetDoctorsByDepartment(deptName);
                                             if (doctors.Count == 0)
                                             {
                                                 Console.Clear();
@@ -979,7 +979,6 @@ This is an automated message. Please do not reply.
                                     experienceYearDoctorApplicant, passwordDoctorApplicant, universityDoctorApplicant);
                                 newApplicantDoctor.Department=departmentDoctorApplicant;
                                 WriteToFileDoctorApplicant(newApplicantDoctor);
-                                hospital.WriteToFileHospital();
                                 Log.Information($"{nameDoctorApplicant} applied to be a doctor");
                                 Console.WriteLine("Succesfully applied to doctor");
                                 Thread.Sleep(1000);
