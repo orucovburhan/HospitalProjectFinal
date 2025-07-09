@@ -41,6 +41,7 @@ namespace Hospital_Project
     {
         public static void Start()
         {
+            ResetIfOneMinutePassed();
             MainPart: ;
 
             string exePath = AppContext.BaseDirectory;
@@ -228,25 +229,61 @@ namespace Hospital_Project
 
                 return JsonSerializer.Deserialize<List<ApplicantDoctor>>(json) ?? new List<ApplicantDoctor>();
             }
-
-            //her 24 saatdan bir yeni bir gun kecennen sonra reservationlar yenilenir
-            void ResetReservations()
+             
+            static void ResetIfOneMinutePassed()
             {
-                List<Doctor>DoctorsList = ReadDoctors();
-                foreach (var doctor in DoctorsList)
+                string lastResetPath = "last_reset.txt";
+                DateTime lastReset = DateTime.MinValue;
+
+                if (File.Exists(lastResetPath))
+                {
+                    string text = File.ReadAllText(lastResetPath);
+                    DateTime.TryParse(text, out lastReset);
+                }
+
+                if ((DateTime.Now - lastReset).TotalMinutes >= 1440)
+                {
+                    ForceResetDoctorAvailability();
+                    File.WriteAllText(lastResetPath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    Console.WriteLine("✅ Saatlar sıfırlandı (test üçün 24 saatlik).");
+                }
+                else
+                {
+                    Console.WriteLine("🕒 Hələ 24 saat keçməyib.");
+                }
+            }
+
+            static void ForceResetDoctorAvailability()
+            {
+                string exePath = AppContext.BaseDirectory;
+                string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+                string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+
+                if (!Directory.Exists(jsonFolder))
+                    Directory.CreateDirectory(jsonFolder);
+
+                string doctorsPath = Path.Combine(jsonFolder, "doctors.json");
+                string json = File.ReadAllText(doctorsPath);
+                var doctors = JsonSerializer.Deserialize<List<Doctor>>(json);
+
+                if (doctors == null)
+                {
+                    Console.WriteLine("❌ JSON faylı oxunmadı!");
+                    return;
+                }
+
+                foreach (var doctor in doctors)
                 {
                     doctor.NineToEleven = true;
                     doctor.TwelveToFourteen = true;
                     doctor.FifteenToSeventeen = true;
                 }
-                
-            }
-            System.Timers.Timer timer = new System.Timers.Timer();
-            timer.Interval = 24 * 60 * 60 * 1000; 
-            timer.Elapsed += (sender, e) => ResetReservations();
-            timer.Start();
 
+                string updatedJson = JsonSerializer.Serialize(doctors, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(doctorsPath, updatedJson);
 
+                Console.WriteLine("✅ Bütün saatlar sıfırlandı!");
+            }            
 
             WriteToFileAllDoctors(hospital.AllDoctors);
             while (true)
@@ -270,7 +307,8 @@ while (true)
     FirstPart: ;
     Console.Clear();
     Console.WriteLine("Welcome to MediNova Hospital");
-    
+    ForceResetDoctorAvailability(); // Main() daxilində
+
 
     for (int i = 0; i < menuOptions.Length; i++)
     {
