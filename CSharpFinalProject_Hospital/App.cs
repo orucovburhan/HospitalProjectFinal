@@ -245,11 +245,6 @@ namespace Hospital_Project
                 {
                     ForceResetDoctorAvailability();
                     File.WriteAllText(lastResetPath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    Console.WriteLine("✅ Saatlar sıfırlandı (test üçün 24 saatlik).");
-                }
-                else
-                {
-                    Console.WriteLine("🕒 Hələ 24 saat keçməyib.");
                 }
             }
 
@@ -266,12 +261,6 @@ namespace Hospital_Project
                 string json = File.ReadAllText(doctorsPath);
                 var doctors = JsonSerializer.Deserialize<List<Doctor>>(json);
 
-                if (doctors == null)
-                {
-                    Console.WriteLine("❌ JSON faylı oxunmadı!");
-                    return;
-                }
-
                 foreach (var doctor in doctors)
                 {
                     doctor.NineToEleven = true;
@@ -281,8 +270,6 @@ namespace Hospital_Project
 
                 string updatedJson = JsonSerializer.Serialize(doctors, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(doctorsPath, updatedJson);
-
-                Console.WriteLine("✅ Bütün saatlar sıfırlandı!");
             }            
 
             WriteToFileAllDoctors(hospital.AllDoctors);
@@ -307,7 +294,7 @@ while (true)
     FirstPart: ;
     Console.Clear();
     Console.WriteLine("Welcome to MediNova Hospital");
-    ForceResetDoctorAvailability(); // Main() daxilində
+    ForceResetDoctorAvailability(); 
 
 
     for (int i = 0; i < menuOptions.Length; i++)
