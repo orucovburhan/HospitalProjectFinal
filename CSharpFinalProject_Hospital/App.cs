@@ -273,6 +273,7 @@ namespace Hospital_Project
             }            
 
             WriteToFileAllDoctors(hospital.AllDoctors);
+            hospital.AllDoctors=ReadDoctors();
             while (true)
             {
                 RestartLogin: ;
