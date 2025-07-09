@@ -41,6 +41,8 @@ namespace Hospital_Project
     {
         public static void Start()
         {
+            MainPart: ;
+
             string exePath = AppContext.BaseDirectory;
             string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
             string basePath = Path.Combine(projectRoot, "Logs");
@@ -208,7 +210,6 @@ namespace Hospital_Project
                     return new List<User>();
                 }
             }
-
             List<ApplicantDoctor> ReadDoctorApplicants()
             {
                 string exePath = AppContext.BaseDirectory;
@@ -228,6 +229,24 @@ namespace Hospital_Project
                 return JsonSerializer.Deserialize<List<ApplicantDoctor>>(json) ?? new List<ApplicantDoctor>();
             }
 
+            //her 24 saatdan bir yeni bir gun kecennen sonra reservationlar yenilenir
+            void ResetReservations()
+            {
+                List<Doctor>DoctorsList = ReadDoctors();
+                foreach (var doctor in DoctorsList)
+                {
+                    doctor.NineToEleven = true;
+                    doctor.TwelveToFourteen = true;
+                    doctor.FifteenToSeventeen = true;
+                }
+                
+            }
+            System.Timers.Timer timer = new System.Timers.Timer();
+            timer.Interval = 24 * 60 * 60 * 1000; 
+            timer.Elapsed += (sender, e) => ResetReservations();
+            timer.Start();
+
+
 
             WriteToFileAllDoctors(hospital.AllDoctors);
             while (true)
@@ -236,12 +255,12 @@ namespace Hospital_Project
                 Console.Clear();
                 string[] menuOptions =
 {
-    "Admin sign in",
-    "User sign up",
-    "User sign in",
-    "Doctor sign in",
-    "Apply to become a doctor",
-    "Exit"
+    "|Admin sign in",
+    "|User sign up",
+    "|User sign in",
+    "|Doctor sign in",
+    "|Apply to become a doctor",
+    "|Exit"
 };
 
 int selectedIndex = 0;
@@ -308,7 +327,7 @@ while (true)
                                     if (i == selectedIndex1)
                                     {
                                         Console.ForegroundColor = ConsoleColor.Cyan;
-                                        Console.WriteLine(">> " + options[i]);
+                                        Console.WriteLine("> " + options[i]);
                                         Console.ResetColor();
                                     }
                                     else
@@ -337,18 +356,25 @@ while (true)
                             {
                                 case 0:
                                     admin.ViewApplicants(ReadDoctorApplicants(),hospital.AllDoctors,ref hospital);
+                                    Log.Information("Admin viewed applicants");
                                     break;
                                 case 1:
                                     admin.View(hospital.Departments);
+                                    Log.Information("Admin viewed departments");
+
                                     break;
                                 case 2:
                                     admin.View(ReadUsers());
+                                    Log.Information("Admin viewed users");
+
                                     break;
                                 case 3:
                                     admin.View(ReadDoctors());
+                                    Log.Information("Admin viewed doctors");
                                     break;
                                 case 4:
                                     Console.WriteLine("Exiting admin panel...");
+                                    Log.Information("Admin exited admin panel");
                                     Thread.Sleep(1000); 
                                     goto FirstPart;
                                     break;
@@ -378,9 +404,9 @@ while (true)
                     {
                         User newUser = new User(name, surname, email, phone,password);
                         Console.WriteLine("Account successfully created.Please sign in.");
-                        Log.Information($"Account successfully created - {email}");
-                        
-
+                        Log.Information($"Account successfully created - {email}"); 
+                        Console.WriteLine("Press any key to continue...");
+                        Console.ReadKey();
                         List<User> users = new();
                         WriteToFileUser(users,newUser);
                         
@@ -437,7 +463,6 @@ while (true)
                             try
                             {
                                 Log.Information($"{users2[index].Name} {users2[index].Surname} have entered {departments[index]}");
-
                             }
                             catch (Exception e)
                             {
@@ -515,12 +540,12 @@ while (true)
                                                     if (i == selectedDoctorIndex)
                                                     {
                                                         Console.ForegroundColor = ConsoleColor.Cyan;
-                                                        Console.WriteLine($"> {doctors[i].Name} {doctors[i].Surname}");
+                                                        Console.WriteLine($"> |{doctors[i].Name} {doctors[i].Surname}");
                                                         Console.ResetColor();
                                                     }
                                                     else
                                                     {
-                                                        Console.WriteLine($"  {doctors[i].Name} {doctors[i].Surname}");
+                                                        Console.WriteLine($"  |{doctors[i].Name} {doctors[i].Surname}");
                                                     }
                                                 }
 
@@ -567,7 +592,7 @@ while (true)
                                                             bool[] available =
                                                             {
                                                                 doctors[selectedDoctorIndex].NineToEleven,
-                                                                doctors[selectedDoctorIndex].TwelveToThirteen,
+                                                                doctors[selectedDoctorIndex].TwelveToFourteen,
                                                                 doctors[selectedDoctorIndex].FifteenToSeventeen,
                                                             };
                                                             string[] hours =
@@ -641,7 +666,7 @@ while (true)
                                                                                 .NineToEleven = false;
                                                                         else if (selectedHourIndex == 1)
                                                                             doctors[selectedDoctorIndex]
-                                                                                .TwelveToThirteen = false;
+                                                                                .TwelveToFourteen = false;
                                                                         else if (selectedHourIndex == 2)
                                                                             doctors[selectedDoctorIndex]
                                                                                 .FifteenToSeventeen = false;
@@ -762,14 +787,129 @@ This is an automated message. Please do not reply.
                         {
                             Console.WriteLine("Invalid password");
                             Console.WriteLine("Press any key to return to login...");
+                            Log.Information($"Invalid password {email2}");
                             Console.ReadKey();
                         }
 
                         break;
                     }
                 case 3:
-                    //doctor sign in
+                    List<Doctor> doctors2 = ReadDoctors();
+                    int SearchDoctor(string email)
+                    {
+                        for (int i = 0; i < doctors2.Count; i++)
+                        {
+                            if (doctors2[i].Email == email)
+                                return i;
+                        }
+                        return -1;
+                    }
+
+                    Console.Write("Enter your email: ");
+                    string email3 = Console.ReadLine();
+                    int index2 = SearchDoctor(email3);
+
+                    if (index2 == -1)
+                    {
+                        Console.WriteLine("Doctor not found");
+                        Log.Information($"Doctor not found - {email3}");
+                        Console.WriteLine("Press any key to go sign up.");
+                        Console.ReadKey();
+                        break; // goto əvəzinə break istifadə edək
+                    }
+
+                    Console.Write("Enter your password: ");
+                    string password3 = Console.ReadLine();
+
+                    if (password3 == doctors2[index2].Password)
+                    {
+                        string[] choices =
+                        {
+                            "View your coming appointments",
+                            "View your informations",
+                            "Back"
+                        };
+
+                        int selectedIndex2 = 0;
+
+                        while (true)
+                        {
+                            Console.Clear();
+                            Console.WriteLine($"Welcome Dr. {doctors2[index2].Name} {doctors2[index2].Surname}\n");
+                            Console.WriteLine("Choose an option:\n");
+
+                            for (int i = 0; i < choices.Length; i++)
+                            {
+                                if (i == selectedIndex2)
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Cyan;
+                                    Console.WriteLine($"> {choices[i]}");
+                                    Console.ResetColor();
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"  {choices[i]}");
+                                }
+                            }
+
+                            var key2 = Console.ReadKey(true).Key;
+
+                            if (key2 == ConsoleKey.UpArrow)
+                            {
+                                selectedIndex2 = (selectedIndex2 - 1 + choices.Length) % choices.Length;
+                            }
+                            else if (key2 == ConsoleKey.DownArrow)
+                            {
+                                selectedIndex2 = (selectedIndex2 + 1) % choices.Length;
+                            }
+                            else if (key2 == ConsoleKey.Enter)
+                            {
+                                switch (selectedIndex2)
+                                {
+                                    case 0:
+                                        Console.Clear();
+                                        Console.WriteLine("Coming appointments:");
+                                        
+                                        List<Doctor> doctors3 = ReadDoctors();
+                                        int index3 = SearchDoctor(email3);
+                                        if(!doctors3[index3].NineToEleven)
+                                            Console.WriteLine("Appointment 09:00 - 11:00");
+                                        if(!doctors3[index3].TwelveToFourteen)
+                                            Console.WriteLine("Appointment 12:00 - 14:00");
+                                        if(!doctors3[index3].FifteenToSeventeen)
+                                            Console.WriteLine("Appointment 15:00 - 17:00");
+                                        Console.WriteLine("Press any key to go back");
+                                        Console.ReadKey();
+                                        break;
+                                    case 1:
+                                        Console.Clear();
+                                        Console.WriteLine("Your Information:");
+                                        Console.WriteLine($"Name: {doctors2[index2].Name}");
+                                        Console.WriteLine($"Surname: {doctors2[index2].Surname}");
+                                        Console.WriteLine($"Email: {doctors2[index2].Email}");
+                                        Console.WriteLine($"Phone: {doctors2[index2].Phone}");
+                                        Console.WriteLine($"Experience: {doctors2[index2].ExperienceYear} years");
+                                        Console.WriteLine("Press any key to go back");
+                                        Console.ReadKey();
+                                        break;
+                                    case 2:
+                                        Log.Information($"{doctors2[index2].Name} logged out.");
+                                        goto MainPart;
+                                        
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Incorrect password.");
+                        Log.Warning($"Incorrect password attempt by {email3}");
+                        Console.WriteLine("Press any key to try again.");
+                        Console.ReadKey();
+                    }
+
                     break;
+
                 case 4:
                     //doctor application for being a doc
                     Console.WriteLine("Welcome! Please fill the gaps.");
@@ -814,6 +954,9 @@ This is an automated message. Please do not reply.
                                 newApplicantDoctor.Department=departmentDoctorApplicant;
                                 WriteToFileDoctorApplicant(newApplicantDoctor);
                                 hospital.WriteToFileHospital();
+                                Log.Information($"{nameDoctorApplicant} applied to be a doctor");
+                                Console.WriteLine("Succesfully applied to doctor");
+                                Thread.Sleep(1000);
                             }
                         }
                         catch (Exception ex)

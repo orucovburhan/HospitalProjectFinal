@@ -31,10 +31,9 @@ Phone: {Phone}
 Password: {Password}
 ";
     public string? Password { get; set; }
-
     public double ExperienceYear { get; set; }
     public bool NineToEleven { get; set; } = true;
-    public bool TwelveToThirteen { get; set; } = true;
+    public bool TwelveToFourteen { get; set; } = true;
     public bool FifteenToSeventeen { get; set; } = true;
 
 
