@@ -41,7 +41,6 @@ namespace Hospital_Project
     {
         public static void Start()
         {
-            ResetIfOneMinutePassed();
             MainPart: ;
 
             string exePath = AppContext.BaseDirectory;
@@ -61,7 +60,7 @@ namespace Hospital_Project
 
 
             Hospital hospital = new Hospital("MediNova Hospital");
-            hospital = hospital.ReadFromFileHospital();
+            hospital = Hospital.ReadFromFileHospital() ?? new Hospital("MediNova Hospital");
             void WriteToFileUser(List<User> users, User newUser)
             {
                 string exePath = AppContext.BaseDirectory;
@@ -111,7 +110,7 @@ namespace Hospital_Project
 
                 string newJson = JsonSerializer.Serialize(doctors, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(doctorsPath, newJson);
-            }
+            }            
             void WriteToFileDoctorApplicant(ApplicantDoctor newDoctor)
             {
                 string exePath = AppContext.BaseDirectory;
@@ -162,6 +161,99 @@ namespace Hospital_Project
                 string newJson = JsonSerializer.Serialize(doctors, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(doctorsPath, newJson);
             }
+            void UpdateDoctorAvailability(string email, string availabilityField, bool newValue)
+            {
+                string exePath = AppContext.BaseDirectory;
+                string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+                string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+                string doctorsPath = Path.Combine(jsonFolder, "doctors.json");
+
+                if (!File.Exists(doctorsPath))
+                    return;
+
+                string json = File.ReadAllText(doctorsPath);
+                List<Doctor> doctors = JsonSerializer.Deserialize<List<Doctor>>(json) ?? new();
+
+                var doctor = doctors.FirstOrDefault(d => d.Email == email);
+                if (doctor == null)
+                    return;
+
+                switch (availabilityField)
+                {
+                    case "NineToEleven":
+                        doctor.NineToEleven = newValue;
+                        break;
+                    case "TwelveToFourteen":
+                        doctor.TwelveToFourteen = newValue;
+                        break;
+                    case "FifteenToSeventeen":
+                        doctor.FifteenToSeventeen = newValue;
+                        break;
+                    default:
+                        Console.WriteLine("Invalid availability field.");
+                        return;
+                }
+                string updatedJson = JsonSerializer.Serialize(doctors, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(doctorsPath, updatedJson);
+            }
+            void UpdateDoctorAvailabilityInHospitalFile(string email, string availabilityField, bool newValue)
+{
+    string exePath = AppContext.BaseDirectory;
+    string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+    string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+    string hospitalPath = Path.Combine(jsonFolder, "hospital.json");
+
+    if (!File.Exists(hospitalPath))
+        return;
+
+    string json = File.ReadAllText(hospitalPath);
+    using JsonDocument doc = JsonDocument.Parse(json);
+    JsonElement root = doc.RootElement;
+
+    JsonElement departmentsElement = root.GetProperty("Departments");
+    var updatedDepartments = new List<object>();
+
+    foreach (JsonElement deptElement in departmentsElement.EnumerateArray())
+    {
+        string deptName = deptElement.GetProperty("Name").GetString();
+        var updatedDoctors = new List<object>();
+
+        foreach (JsonElement docElement in deptElement.GetProperty("Doctors").EnumerateArray())
+        {
+            string docEmail = docElement.GetProperty("Email").GetString();
+            bool isTarget = docEmail == email;
+
+            updatedDoctors.Add(new
+            {
+                Name = docElement.GetProperty("Name").GetString(),
+                Surname = docElement.GetProperty("Surname").GetString(),
+                Email = docEmail,
+                Phone = docElement.GetProperty("Phone").GetString(),
+                ExperienceYear = docElement.GetProperty("ExperienceYear").GetDouble(),
+                Password = docElement.GetProperty("Password").GetString(),
+                NineToEleven = availabilityField == "NineToEleven" && isTarget ? newValue : docElement.GetProperty("NineToEleven").GetBoolean(),
+                TwelveToFourteen = availabilityField == "TwelveToFourteen" && isTarget ? newValue : docElement.GetProperty("TwelveToFourteen").GetBoolean(),
+                FifteenToSeventeen = availabilityField == "FifteenToSeventeen" && isTarget ? newValue : docElement.GetProperty("FifteenToSeventeen").GetBoolean()
+            });
+        }
+
+        updatedDepartments.Add(new
+        {
+            Name = deptName,
+            Doctors = updatedDoctors
+        });
+    }
+
+    var updatedHospital = new
+    {
+        Name = root.GetProperty("Name").GetString(),
+        Departments = updatedDepartments
+    };
+
+    string updatedJson = JsonSerializer.Serialize(updatedHospital, new JsonSerializerOptions { WriteIndented = true });
+    File.WriteAllText(hospitalPath, updatedJson);
+}
+
             List<Doctor> ReadDoctors()
             {
                 try
@@ -228,8 +320,10 @@ namespace Hospital_Project
 
                 return JsonSerializer.Deserialize<List<ApplicantDoctor>>(json) ?? new List<ApplicantDoctor>();
             }
-             
-            static void ResetIfOneMinutePassed()
+            
+            WriteToFileAllDoctors(hospital.AllDoctors);
+            hospital.AllDoctors=ReadDoctors();
+            static void ResetIfOneDayPassed()
             {
                 string lastResetPath = "last_reset.txt";
                 DateTime lastReset = DateTime.MinValue;
@@ -240,13 +334,12 @@ namespace Hospital_Project
                     DateTime.TryParse(text, out lastReset);
                 }
 
-                if ((DateTime.Now - lastReset).TotalMinutes >= 1440)
+                if (DateTime.Now - lastReset >= TimeSpan.FromDays(1)) // 24 saat
                 {
                     ForceResetDoctorAvailability();
                     File.WriteAllText(lastResetPath, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                 }
             }
-
             static void ForceResetDoctorAvailability()
             {
                 string exePath = AppContext.BaseDirectory;
@@ -256,6 +349,7 @@ namespace Hospital_Project
                 if (!Directory.Exists(jsonFolder))
                     Directory.CreateDirectory(jsonFolder);
 
+                
                 string doctorsPath = Path.Combine(jsonFolder, "doctors.json");
                 string json = File.ReadAllText(doctorsPath);
                 var doctors = JsonSerializer.Deserialize<List<Doctor>>(json);
@@ -269,10 +363,7 @@ namespace Hospital_Project
 
                 string updatedJson = JsonSerializer.Serialize(doctors, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(doctorsPath, updatedJson);
-            }            
-
-            WriteToFileAllDoctors(hospital.AllDoctors);
-            hospital.AllDoctors=ReadDoctors();
+            }    
             while (true)
             {
                 RestartLogin: ;
@@ -294,8 +385,7 @@ while (true)
     FirstPart: ;
     Console.Clear();
     Console.WriteLine("Welcome to MediNova Hospital");
-    hospital = hospital.ReadFromFileHospital();
-    ForceResetDoctorAvailability(); 
+    hospital = Hospital.ReadFromFileHospital() ?? new Hospital("MediNova Hospital");
 
 
     for (int i = 0; i < menuOptions.Length; i++)
@@ -328,7 +418,10 @@ while (true)
             {
                 case 0:
                 {
+                    ResetIfOneDayPassed();
+
                     Admin admin = new Admin("admin", "admin");
+                    
                     Console.Write("Enter username: ");
                     string usernameAdmin = Console.ReadLine();
                     Console.Write("Enter password: ");
@@ -688,18 +781,36 @@ while (true)
                                                                     else if (available[selectedHourIndex])
                                                                     {
                                                                         if (selectedHourIndex == 0)
-                                                                            doctors[selectedDoctorIndex]
-                                                                                .NineToEleven = false;
+                                                                        {
+                                                                            UpdateDoctorAvailability(
+                                                                                doctors[selectedDoctorIndex].Email,
+                                                                                "NineToEleven", false);
+                                                                            UpdateDoctorAvailabilityInHospitalFile(
+                                                                                doctors[selectedDoctorIndex].Email,
+                                                                                "NineToEleven", false);
+                                                                        }
                                                                         else if (selectedHourIndex == 1)
-                                                                            doctors[selectedDoctorIndex]
-                                                                                .TwelveToFourteen = false;
+                                                                        {
+                                                                            UpdateDoctorAvailability(
+                                                                                doctors[selectedDoctorIndex].Email,
+                                                                                "TwelveToFourteen", false);
+                                                                            UpdateDoctorAvailabilityInHospitalFile(
+                                                                                doctors[selectedDoctorIndex].Email,
+                                                                                "TwelveToFourteen", false);
+                                                                        }
                                                                         else if (selectedHourIndex == 2)
-                                                                            doctors[selectedDoctorIndex]
-                                                                                .FifteenToSeventeen = false;
+                                                                        {
+                                                                            UpdateDoctorAvailability(
+                                                                                doctors[selectedDoctorIndex].Email,
+                                                                                "FifteenToSeventeen", false);
+                                                                            UpdateDoctorAvailabilityInHospitalFile(
+                                                                                doctors[selectedDoctorIndex].Email,
+                                                                                "FifteenToSeventeen", false);
+                                                                        }
 
                                                                         Console.Clear();
-                                                                        WriteToFileDoctor(hospital.AllDoctors,doctors[selectedDoctorIndex]);
-
+                                                                        
+                                                                        
                                                                         Console.WriteLine(
                                                                             $"Thank you {users2[index].Name} {users2[index].Surname}. You have booked {hourRanges[selectedHourIndex]} with Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}\nBill is preparing");
                                                                         Log.Information($"{users2[index].Name} {users2[index].Surname} booked an appointment with Dr. {doctors[selectedDoctorIndex].Name} {doctors[selectedDoctorIndex].Surname}");
@@ -1015,5 +1126,7 @@ This is an automated message. Please do not reply.
                 
             }
         }
+        
     }
+    
 }

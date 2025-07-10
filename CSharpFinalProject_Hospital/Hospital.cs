@@ -21,18 +21,28 @@ public class Hospital
         new Doctor("Rod", "Hughes", "rod.hughes@hospital.com", "0701234571", 29, "Rod123456"),
     };
 
-    
+
     public Hospital(string name)
     {
-        
+        string exePath = AppContext.BaseDirectory;
+        string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+        string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+        string hospitalPath = Path.Combine(jsonFolder, "hospital.json");
         Departments = new List<Department>()
         {
-        new Department("Pediatrics",new List<Doctor>(){AllDoctors[0],AllDoctors[1],AllDoctors[2],AllDoctors[3]}),
-        new Department("Traumatology",new List<Doctor>(){AllDoctors[4],AllDoctors[5],AllDoctors[6]}),
-        new Department("Dentistry",new List<Doctor>(){AllDoctors[7],AllDoctors[8],AllDoctors[9],AllDoctors[10]}),
+            new Department("Pediatrics",
+                new List<Doctor>() { AllDoctors[0], AllDoctors[1], AllDoctors[2], AllDoctors[3] }),
+            new Department("Traumatology", new List<Doctor>() { AllDoctors[4], AllDoctors[5], AllDoctors[6] }),
+            new Department("Dentistry",
+                new List<Doctor>() { AllDoctors[7], AllDoctors[8], AllDoctors[9], AllDoctors[10] }),
         };
         Name = name;
-        Departments = ReadDepartmentsFromFile();
+        if (File.Exists(hospitalPath))
+            Departments = ReadDepartmentsFromFile();
+        else
+        {
+            WriteToFileHospital();
+        }
     }
 
     public List<Department> Departments;
@@ -88,7 +98,10 @@ public class Hospital
                     Email = doc.Email,
                     Phone = doc.Phone,
                     ExperienceYear = doc.ExperienceYear,
-                    Password = doc.Password
+                    Password = doc.Password,
+                    NineToEleven = doc.NineToEleven,
+                    TwelveToFourteen = doc.TwelveToFourteen,
+                    FifteenToSeventeen = doc.FifteenToSeventeen
                 });
             }
 
@@ -160,7 +173,7 @@ public class Hospital
         return new List<Department>();
     }
 
-    public Hospital ReadFromFileHospital()
+    public static Hospital ReadFromFileHospital()
     {
         string exePath = AppContext.BaseDirectory;
         string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
@@ -181,17 +194,62 @@ public class Hospital
         return hospital;
     }
     public List<Doctor> GetDoctorsByDepartment(string departmentName)
-    {
-        if (string.IsNullOrWhiteSpace(departmentName))
-            return new List<Doctor>();
-
-        var department = Departments.FirstOrDefault(d => d.Name.Equals(departmentName, StringComparison.OrdinalIgnoreCase));
-
-        if (department != null)
-            return department.Doctors;
-
+{
+    if (string.IsNullOrWhiteSpace(departmentName))
         return new List<Doctor>();
+
+    string exePath = AppContext.BaseDirectory;
+    string projectRoot = Path.GetFullPath(Path.Combine(exePath, "..", "..", ".."));
+    string jsonFolder = Path.Combine(projectRoot, "JsonFiles");
+    string hospitalPath = Path.Combine(jsonFolder, "hospital.json");
+
+    if (!File.Exists(hospitalPath))
+        return new List<Doctor>();
+
+    string json = File.ReadAllText(hospitalPath);
+    using JsonDocument doc = JsonDocument.Parse(json);
+    JsonElement root = doc.RootElement;
+
+    if (!root.TryGetProperty("Departments", out JsonElement departmentsElement))
+        return new List<Doctor>();
+
+    foreach (JsonElement deptElement in departmentsElement.EnumerateArray())
+    {
+        string deptName = deptElement.GetProperty("Name").GetString();
+        if (!deptName.Equals(departmentName, StringComparison.OrdinalIgnoreCase))
+            continue;
+
+        List<Doctor> doctors = new();
+
+        foreach (JsonElement docElement in deptElement.GetProperty("Doctors").EnumerateArray())
+        {
+            string name = docElement.GetProperty("Name").GetString();
+            string surname = docElement.GetProperty("Surname").GetString();
+            string email = docElement.GetProperty("Email").GetString();
+            string phone = docElement.GetProperty("Phone").GetString();
+            double experience = docElement.GetProperty("ExperienceYear").GetDouble();
+            string password = docElement.GetProperty("Password").GetString();
+
+            bool nineToEleven = docElement.GetProperty("NineToEleven").GetBoolean();
+            bool twelveToFourteen = docElement.GetProperty("TwelveToFourteen").GetBoolean();
+            bool fifteenToSeventeen = docElement.GetProperty("FifteenToSeventeen").GetBoolean();
+
+            Doctor doctor = new(name, surname, email, phone, experience, password)
+            {
+                NineToEleven = nineToEleven,
+                TwelveToFourteen = twelveToFourteen,
+                FifteenToSeventeen = fifteenToSeventeen
+            };
+
+            doctors.Add(doctor);
+        }
+
+        return doctors;
     }
+
+    return new List<Doctor>();
+}
+
 
 
 }
